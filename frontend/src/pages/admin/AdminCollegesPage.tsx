@@ -92,7 +92,7 @@ export const AdminCollegesPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Apex Institute of Technology"
+                  placeholder="e.g. Chitkara University"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -106,7 +106,7 @@ export const AdminCollegesPage: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. apex.edu"
+                  placeholder="e.g. chitkarauniversity.edu.in"
                   value={emailDomain}
                   onChange={(e) => setEmailDomain(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
