@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '');
+const API_BASE_URL = `${cleanBaseUrl}/api`;
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -15,11 +17,17 @@ export async function apiFetch<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_URL}/api${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  // Attach Authorization Bearer token header if present in localStorage as cross-domain fallback
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
   }
 
   try {

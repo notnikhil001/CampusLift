@@ -47,6 +47,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (res.success && res.data?.user) {
+      if (res.data.token) {
+        localStorage.setItem('auth_token', res.data.token);
+      }
       setUser(res.data.user);
       connectSocket();
       return { success: true };
@@ -76,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await apiFetch('/auth/logout', { method: 'POST' });
+    localStorage.removeItem('auth_token');
     setUser(null);
     disconnectSocket();
   };
