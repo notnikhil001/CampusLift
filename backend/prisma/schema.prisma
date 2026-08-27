@@ -1,0 +1,320 @@
+// Prisma schema for CampusLift
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum LocationType {
+  CAMPUS
+  POPULAR
+}
+
+enum TimeMode {
+  RANGE
+  FLEXIBLE
+}
+
+enum IntentStatus {
+  ACTIVE
+  MATCHED
+  CANCELLED
+  EXPIRED
+}
+
+enum GroupStatus {
+  OPEN
+  PLANNING
+  READY
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  CLOSED
+}
+
+enum GroupRole {
+  LEADER
+  MEMBER
+}
+
+enum MemberStatus {
+  ACTIVE
+  LEFT
+  REMOVED
+}
+
+enum TripStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReportStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  REJECTED
+}
+
+model College {
+  id          String         @id @default(uuid())
+  name        String
+  emailDomain String         @unique
+  logo        String?
+  status      Status         @default(ACTIVE)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  users        User[]
+  locations    Location[]
+  travelGroups TravelGroup[]
+}
+
+model User {
+  id                       String        @id @default(uuid())
+  name                     String
+  email                    String        @unique
+  passwordHash             String
+  phoneNumber              String?
+  profilePhoto             String?
+  collegeId                String
+  course                   String?
+  year                     String?
+  isVerified               Boolean       @default(false)
+  verificationToken        String?
+  verificationTokenExpires DateTime?
+  resetPasswordToken       String?
+  resetPasswordExpires     DateTime?
+  role                     UserRole      @default(STUDENT)
+  accountStatus            AccountStatus @default(ACTIVE)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  college          College       @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  travelIntents    TravelIntent[]
+  groupMemberships GroupMember[]
+  messages         Message[]
+  notifications    Notification[]
+  ratingsGiven     Rating[]      @relation("RaterUser")
+  ratingsReceived  Rating[]      @relation("RatedUser")
+  reportsSubmitted Report[]      @relation("ReporterUser")
+  reportsReceived  Report[]      @relation("ReportedUser")
+  blocksGiven      Block[]       @relation("BlockerUser")
+  blocksReceived   Block[]       @relation("BlockedUser")
+
+  @@index([collegeId])
+  @@index([email])
+}
+
+model Location {
+  id          String       @id @default(uuid())
+  collegeId   String
+  name        String
+  description String?
+  type        LocationType @default(POPULAR)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  college           College       @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  fromIntents       TravelIntent[] @relation("FromLocation")
+  toIntents         TravelIntent[] @relation("ToLocation")
+  fromGroups        TravelGroup[]  @relation("GroupFromLocation")
+  toGroups          TravelGroup[]  @relation("GroupToLocation")
+  meetingPointGroups TravelGroup[] @relation("GroupMeetingPoint")
+
+  @@index([collegeId])
+}
+
+model TravelIntent {
+  id                 String       @id @default(uuid())
+  creatorId          String
+  fromLocationId     String
+  toLocationId       String
+  date               String       // YYYY-MM-DD
+  timeMode           TimeMode     @default(RANGE)
+  startTime          String?      // e.g. "08:00"
+  endTime            String?      // e.g. "08:30"
+  preferredTime      String?      // e.g. "08:15"
+  flexibilityMinutes Int?         // e.g. 15
+  effectiveStart     DateTime
+  effectiveEnd       DateTime
+  note               String?
+  status             IntentStatus @default(ACTIVE)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  creator      User          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  fromLocation Location      @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocation   Location      @relation("ToLocation", fields: [toLocationId], references: [id])
+  groupMembers GroupMember[]
+
+  @@index([creatorId])
+  @@index([fromLocationId, toLocationId])
+  @@index([date])
+  @@index([status])
+}
+
+model TravelGroup {
+  id             String      @id @default(uuid())
+  collegeId      String
+  fromLocationId String
+  toLocationId   String
+  date           String      // YYYY-MM-DD
+  commonTime     String?
+  meetingPointId String?
+  status         GroupStatus @default(OPEN)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  college      College       @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  fromLocation Location      @relation("GroupFromLocation", fields: [fromLocationId], references: [id])
+  toLocation   Location      @relation("GroupToLocation", fields: [toLocationId], references: [id])
+  meetingPoint Location?     @relation("GroupMeetingPoint", fields: [meetingPointId], references: [id])
+  members      GroupMember[]
+  messages     Message[]
+  trips        Trip[]
+  reports      Report[]
+
+  @@index([collegeId])
+  @@index([fromLocationId, toLocationId])
+  @@index([date])
+  @@index([status])
+}
+
+model GroupMember {
+  id        String       @id @default(uuid())
+  groupId   String
+  userId    String
+  intentId  String?
+  role      GroupRole    @default(MEMBER)
+  joinedAt  DateTime     @default(now())
+  leftAt    DateTime?
+  status    MemberStatus @default(ACTIVE)
+
+  group  TravelGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intent TravelIntent? @relation(fields: [intentId], references: [id], onDelete: SetNull)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  groupId         String
+  senderId        String?
+  content         String
+  isSystemMessage Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  editedAt        DateTime?
+  deletedAt       DateTime?
+
+  group  TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Trip {
+  id            String     @id @default(uuid())
+  groupId       String
+  status        TripStatus @default(UPCOMING)
+  scheduledTime DateTime
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  group   TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  ratings Rating[]
+
+  @@index([groupId])
+  @@index([status])
+}
+
+model Rating {
+  id          String   @id @default(uuid())
+  tripId      String
+  raterId     String
+  ratedUserId String
+  rating      Int
+  tags        String[]
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  trip      Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  rater     User @relation("RaterUser", fields: [raterId], references: [id], onDelete: Cascade)
+  ratedUser User @relation("RatedUser", fields: [ratedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, raterId, ratedUserId])
+  @@index([ratedUserId])
+}
+
+model Report {
+  id            String       @id @default(uuid())
+  reporterId    String
+  reportedUserId String?
+  groupId       String?
+  category      String
+  description   String
+  status        ReportStatus @default(OPEN)
+  adminNotes    String?
+  createdAt     DateTime     @default(now())
+  resolvedAt    DateTime?
+
+  reporter     User         @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser User?        @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  group        TravelGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+model Block {
+  id            String   @id @default(uuid())
+  blockerId     String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+
+  blocker     User @relation("BlockerUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser User @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+}
