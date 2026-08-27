@@ -133,11 +133,12 @@ Visit **http://localhost:5173** in your web browser.
 
 | Role | Email | Password | Details |
 | :--- | :--- | :--- | :--- |
-| **👑 Admin** | `admin@apex.edu` | `Admin123!` | Full Admin Dashboard access |
-| **🎓 Verified Student 1** | `aman@apex.edu` | `Student123!` | Computer Science, 3rd Year |
-| **🎓 Verified Student 2** | `rahul@apex.edu` | `Student123!` | Mechanical Eng, 2nd Year |
-| **🎓 Verified Student 3** | `priya@apex.edu` | `Student123!` | Electrical Eng, 4th Year |
-| **⚠️ Unverified Student** | `ananya@apex.edu` | `Student123!` | Requires email verification |
+| **👑 Admin** | `admin@chitkarauniversity.edu.in` | `Admin123!` | Full Admin Dashboard access |
+| **🎓 Verified Student 1** | `aman@chitkarauniversity.edu.in` | `Student123!` | Computer Science, 3rd Year |
+| **🎓 Verified Student 2** | `rahul@chitkarauniversity.edu.in` | `Student123!` | Mechanical Eng, 4th Year |
+| **🎓 Verified Student 3** | `priya@chitkarauniversity.edu.in` | `Student123!` | Electronics & Comm, 2nd Year |
+| **🎓 Verified Student 4** | `sneha@chitkarauniversity.edu.in` | `Student123!` | Data Science, 3rd Year |
+| **⚠️ Unverified Student** | `ananya@chitkarauniversity.edu.in` | `Student123!` | Civil Eng, 1st Year (Unverified) |
 
 ---
 
