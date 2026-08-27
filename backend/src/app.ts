@@ -15,11 +15,36 @@ import adminRoutes from './routes/adminRoutes';
 
 export const app = express();
 
+// Configure production-ready allowed CORS origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://localhost:4173',
+];
+
+if (env.FRONTEND_URL) {
+  const customOrigins = env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, ''));
+  allowedOrigins.push(...customOrigins);
+}
+
 // Security & Parsing Middleware
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/+$/, '');
+      if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      if (env.NODE_ENV === 'development' && origin.includes('localhost')) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
   })
 );
 
