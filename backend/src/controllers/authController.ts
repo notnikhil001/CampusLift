@@ -48,7 +48,8 @@ export async function register(req: Request, res: Response) {
   }
 
   const passwordHash = await bcrypt.hash(validated.password, 10);
-  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const verificationToken = `${otpCode}_${crypto.randomBytes(16).toString('hex')}`;
   const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
   const user = await prisma.user.create({
@@ -74,30 +75,51 @@ export async function register(req: Request, res: Response) {
     },
   });
 
-  await sendVerificationEmail(user.email, verificationToken);
+  try {
+    await sendVerificationEmail(user.email, verificationToken, otpCode);
+  } catch (emailErr) {
+    console.error('⚠️ Verification email dispatch error:', emailErr);
+  }
 
   return sendSuccess(
     res,
     user,
-    'Registration successful. Please check your college email to verify your account.',
+    'Registration successful. Please check your college email for your OTP code / verification link.',
     201
   );
 }
 
 export async function verifyEmail(req: Request, res: Response) {
-  const { token } = verifyEmailSchema.parse(req.body);
+  const { token, otp } = verifyEmailSchema.parse(req.body);
 
-  const user = await prisma.user.findFirst({
-    where: {
-      verificationToken: token,
-      verificationTokenExpires: { gte: new Date() },
-    },
-  });
+  let user = null;
+
+  if (token) {
+    user = await prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+        verificationTokenExpires: { gte: new Date() },
+      },
+    });
+  }
+
+  if (!user && otp) {
+    const cleanOtp = otp.trim();
+    user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { verificationToken: cleanOtp },
+          { verificationToken: { startsWith: `${cleanOtp}_` } },
+        ],
+        verificationTokenExpires: { gte: new Date() },
+      },
+    });
+  }
 
   if (!user) {
     return sendError(
       res,
-      'Invalid or expired verification token',
+      'Invalid or expired 6-digit OTP code / verification token',
       400,
       'INVALID_TOKEN'
     );
@@ -140,7 +162,8 @@ export async function resendVerification(req: Request, res: Response) {
     return sendError(res, 'This account is already verified.', 400, 'ALREADY_VERIFIED');
   }
 
-  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const verificationToken = `${otpCode}_${crypto.randomBytes(16).toString('hex')}`;
   const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
   await prisma.user.update({
@@ -151,12 +174,16 @@ export async function resendVerification(req: Request, res: Response) {
     },
   });
 
-  await sendVerificationEmail(user.email, verificationToken);
+  try {
+    await sendVerificationEmail(user.email, verificationToken, otpCode);
+  } catch (emailErr) {
+    console.error('⚠️ Resend verification email dispatch error:', emailErr);
+  }
 
   return sendSuccess(
     res,
     null,
-    'Verification email resent successfully! Please check your college inbox.'
+    'Verification email resent successfully! Please check your college inbox for your 6-digit OTP.'
   );
 }
 

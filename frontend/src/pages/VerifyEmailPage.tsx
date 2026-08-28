@@ -36,32 +36,42 @@ export const VerifyEmailPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleVerify = async (tokenToVerify: string) => {
-    if (!tokenToVerify) return;
+  const handleVerify = async (codeToVerify: string) => {
+    if (!codeToVerify) return;
     setIsSubmitting(true);
     setStatus({ type: null, message: '' });
 
-    const res = await apiFetch('/auth/verify-email', {
-      method: 'POST',
-      body: JSON.stringify({ token: tokenToVerify }),
-    });
+    const isNumericOtp = /^\d{6}$/.test(codeToVerify.trim());
+    const payload = isNumericOtp ? { otp: codeToVerify.trim() } : { token: codeToVerify.trim() };
 
-    setIsSubmitting(false);
-
-    if (res.success) {
-      setStatus({
-        type: 'success',
-        message: 'Your college email has been verified! Redirecting to Home...',
+    try {
+      const res = await apiFetch('/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
-      await refreshUser();
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-    } else {
+
+      if (res.success) {
+        setStatus({
+          type: 'success',
+          message: 'Your college email has been verified successfully! Redirecting to Home...',
+        });
+        await refreshUser();
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        setStatus({
+          type: 'error',
+          message: res.error?.message || 'Verification failed. OTP code or token may be invalid or expired.',
+        });
+      }
+    } catch (err: any) {
       setStatus({
         type: 'error',
-        message: res.error?.message || 'Verification failed. Token may be invalid or expired.',
+        message: err.message || 'Verification request failed due to a network error.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -76,24 +86,31 @@ export const VerifyEmailPage: React.FC = () => {
     setIsResending(true);
     setResendStatus({ type: null, message: '' });
 
-    const res = await apiFetch('/auth/resend-verification', {
-      method: 'POST',
-      body: JSON.stringify({ email: targetEmail }),
-    });
-
-    setIsResending(false);
-
-    if (res.success) {
-      setResendStatus({
-        type: 'success',
-        message: res.message || 'Verification email resent! Please check your college inbox.',
+    try {
+      const res = await apiFetch('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: targetEmail }),
       });
-      setCooldown(60);
-    } else {
+
+      if (res.success) {
+        setResendStatus({
+          type: 'success',
+          message: res.message || 'Verification email resent! Please check your college inbox.',
+        });
+        setCooldown(60);
+      } else {
+        setResendStatus({
+          type: 'error',
+          message: res.error?.message || 'Failed to resend verification email.',
+        });
+      }
+    } catch (err: any) {
       setResendStatus({
         type: 'error',
-        message: res.error?.message || 'Failed to resend verification email.',
+        message: err.message || 'Network error while requesting verification email.',
       });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -136,25 +153,26 @@ export const VerifyEmailPage: React.FC = () => {
           className="space-y-4"
         >
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Verification Token
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 text-center">
+              Enter 6-Digit OTP Code
             </label>
             <input
               type="text"
               required
-              placeholder="Paste verification token here"
+              maxLength={6}
+              placeholder="e.g. 482910"
               value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              onChange={(e) => setTokenInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full px-4 py-3 rounded-2xl border-2 border-indigo-100 text-center font-mono font-extrabold text-2xl tracking-[8px] text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none bg-slate-50/50"
             />
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting || !tokenInput}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition shadow-md shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={isSubmitting || tokenInput.length < 6}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition shadow-md shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {isSubmitting ? 'Verifying...' : 'Submit Verification Token'}
+            {isSubmitting ? 'Verifying OTP...' : 'Verify 6-Digit OTP'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

@@ -19,9 +19,14 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-export const verifyEmailSchema = z.object({
-  token: z.string().min(1, 'Verification token is required'),
-});
+export const verifyEmailSchema = z
+  .object({
+    token: z.string().optional(),
+    otp: z.string().optional(),
+  })
+  .refine((data) => data.token || data.otp, {
+    message: 'Either direct verification token or 6-digit OTP code is required',
+  });
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),

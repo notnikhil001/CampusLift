@@ -32,24 +32,31 @@ export const VerificationBanner: React.FC = () => {
     setIsSending(true);
     setResendStatus({ type: null, message: '' });
 
-    const res = await apiFetch('/auth/resend-verification', {
-      method: 'POST',
-      body: JSON.stringify({ email: user.email }),
-    });
-
-    setIsSending(false);
-
-    if (res.success) {
-      setResendStatus({
-        type: 'success',
-        message: 'Verification email sent! Check your inbox.',
+    try {
+      const res = await apiFetch('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: user.email }),
       });
-      setCooldown(60); // 60 seconds cooldown
-    } else {
+
+      if (res.success) {
+        setResendStatus({
+          type: 'success',
+          message: res.message || 'Verification email sent! Check your inbox.',
+        });
+        setCooldown(60); // 60 seconds cooldown
+      } else {
+        setResendStatus({
+          type: 'error',
+          message: res.error?.message || 'Failed to resend email.',
+        });
+      }
+    } catch (err: any) {
       setResendStatus({
         type: 'error',
-        message: res.error?.message || 'Failed to resend email.',
+        message: err.message || 'Network error occurred while sending email.',
       });
+    } finally {
+      setIsSending(false);
     }
   };
 

@@ -351,7 +351,7 @@ async function main() {
       metadata: { groupId: group.id },
     },
   });
-  
+
   console.log('✅ Created demo group, members, chat messages, and notifications');
 
   console.log('\n🎉 CampusLift seeding complete!');
@@ -360,7 +360,7 @@ async function main() {
   console.log('Admin:       admin@chitkarauniversity.edu.in   / Admin123!');
   console.log('Student 1:   aman@chitkarauniversity.edu.in    / Student123! (Verified)');
   console.log('Student 2:   rahul@chitkarauniversity.edu.in   / Student123! (Verified)');
-  console.log('Student 3:   priya@chitkarauniversity.edu.in   / Student123! (Verified)');
+  console.log('Student 3:   priya@chitkarauniversity.edu.in   / Student123!(Verified)');
   console.log('Unverified:  ananya@chitkarauniversity.edu.in  / Student123!');
   console.log('----------------------------------------------------\n');
 }

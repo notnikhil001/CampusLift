@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const locationMsg = (location.state as { message?: string })?.message;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +36,13 @@ export const LoginPage: React.FC = () => {
       <p className="text-sm text-slate-500 text-center mb-6">
         Sign in to discover student travel groups
       </p>
+
+      {locationMsg && !error && (
+        <div className="bg-emerald-50 text-emerald-800 text-sm p-3.5 rounded-xl mb-4 border border-emerald-200 font-medium flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span>{locationMsg}</span>
+        </div>
+      )}
 
       {error && (
         <div className="bg-rose-50 text-rose-700 text-sm p-3.5 rounded-xl mb-4 border border-rose-200">

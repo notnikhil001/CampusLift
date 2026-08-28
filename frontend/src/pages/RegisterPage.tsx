@@ -50,16 +50,23 @@ export const RegisterPage: React.FC = () => {
     setError('');
     setSuccessMsg('');
 
-    const res = await register(formData);
-    setIsSubmitting(false);
+    try {
+      const res = await register(formData);
 
-    if (res.success) {
-      setSuccessMsg(res.message || 'Registration successful! Check your email to verify.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
-    } else {
-      setError(res.error || 'Registration failed');
+      if (res.success) {
+        setSuccessMsg(res.message || 'Registration successful! Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login', {
+            state: { message: 'Registration successful! Please sign in with your credentials.' },
+          });
+        }, 1500);
+      } else {
+        setError(res.error || 'Registration failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected network error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
